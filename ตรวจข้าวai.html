@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGRI-AI ANALYZER - ระบบวิเคราะห์คุณภาพเมล็ดพันธุ์อัจฉริยะ</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h2 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            text-align: center;
+            color: #38bdf8;
+        }
+        .camera-container {
+            width: 100%;
+            max-width: 400px;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        canvas {
+            display: none;
+        }
+        .btn {
+            background-color: #10b981;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            margin-top: 15px;
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+            transition: background 0.2s;
+        }
+        .btn:active {
+            background-color: #059669;
+        }
+        .result-box {
+            margin-top: 20px;
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            text-align: left;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            display: none;
+            border-left: 5px solid #10b981;
+        }
+        .result-box strong {
+            color: #38bdf8;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>🌱 AGRI-AI ANALYZER<br><span style="font-size: 0.9rem; color: #94a3b8;">ระบบวิเคราะห์คุณภาพเมล็ดพันธุ์อัจฉริยะ</span></h2>
+
+    <div class="camera-container">
+        <!-- แสดงภาพจากกล้องมือถือ -->
+        <video id="cameraStream" autoplay playsinline></video>
+    </div>
+
+    <!-- ปุ่มกดถ่ายภาพเพื่อส่งวิเคราะห์ -->
+    <button class="btn" onclick="captureAndAnalyze()">📸 ถ่ายภาพสแกน AI</button>
+
+    <div class="result-box" id="resultBox">
+        <strong>📊 ผลการวิเคราะห์:</strong>
+        <p id="responseText">กำลังเตรียมระบบ...</p>
+    </div>
+
+    <!-- Canvas สำหรับแปลงภาพจากกล้อง -->
+    <canvas id="snapshotCanvas"></canvas>
+
+    <script>
+        const video = document.getElementById('cameraStream');
+        const canvas = document.getElementById('snapshotCanvas');
+        const resultBox = document.getElementById('resultBox');
+        const responseText = document.getElementById('responseText');
+
+        // เปิดใช้งานกล้องหลังมือถืออัตโนมัติ
+        async function startCamera() {
+            try {
+                const constraints = {
+                    video: { facingMode: { exact: "environment" } }
+                };
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+            } catch (err) {
+                // หากเรียกกล้องหลังแบบระบุเป๊ะไม่ได้ ให้ใช้กล้องตัวไหนก็ได้ที่มี
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    video.srcObject = stream;
+                } catch (e) {
+                    alert("ไม่สามารถเปิดใช้งานกล้องได้ กรุณาอนุญาตสิทธิ์การเข้าถึงกล้อง");
+                }
+            }
+        }
+
+        // ฟังก์ชันถ่ายภาพและจำลองส่งข้อมูลประมวลผล
+        function captureAndAnalyze() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // แปลงภาพเป็น Base64 (สามารถส่งต่อให้ Backend Python / FastAPI ได้ในขั้นตอนต่อไป)
+            const imageDataURL = canvas.toDataURL('image/jpeg');
+
+            resultBox.style.display = 'block';
+            responseText.innerHTML = "กำลังประมวลผลภาพด้วย AI...";
+
+            // ตัวอย่างจำลองการส่งข้อมูลกลับมาแสดงผล
+            setTimeout(() => {
+                responseText.innerHTML = `
+                    • ชนิดเมล็ด: ข้าวเปลือก / พืชหลัก<br>
+                    • จำนวนเมล็ดทั้งหมด: 42 เมล็ด<br>
+                    • พันธุ์หลัก (สมบูรณ์): 36 เมล็ด (85.7%)<br>
+                    • เมล็ดพันธุ์อื่นปะปน: 4 เมล็ด<br>
+                    • เมล็ดด่าง/เสีย: 2 เมล็ด<br>
+                    • เกรดคุณภาพประเมิน: <b>Grade A</b>
+                `;
+            }, 1000);
+        }
+
+        // เริ่มเปิดกล้องทันทีที่โหลดหน้าเว็บ
+        window.onload = startCamera;
+    </script>
+</body>
+</html>
